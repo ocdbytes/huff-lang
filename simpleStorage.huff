@@ -1,0 +1,64 @@
+// Defining Storage slots\
+// -------------------------------
+#define constant VALUE = FREE_STORAGE_POINTER()
+#define constant VALUE_STORAGE = FREE_STORAGE_POINTER()
+
+// Interface
+// -------------------------------
+#define function setValue(uint256) nonpayable returns()
+#define function getValue() nonpayable returns (uint256)
+
+// Macros
+// -------------------------------
+#define macro SET_VALUE() = takes(0) returns(0) {
+    0x04                                      // STACK : [0x04]
+    calldataload                              // STACK : [<value>]
+
+    [VALUE_STORAGE]                           // STACK : [<value_storage_pointer>, <value>]
+    sstore                                    // STACK : []
+}
+
+#define macro GET_VALUE() = takes(0) returns(0) {
+    [VALUE_STORAGE]                           // STACK : [<value_storage_pointer>]
+    sload                                     // STACK : [<value>]
+
+    0x00                                      // STACK : [0x00, <value>]
+    mstore                                    // STACK : [], Memory : [<value>]
+
+    0x20                                      // STACK : [0x20]
+    0x00                                      // STACK : [0x00, 0x20]
+    return                                    // STACK : [] // returns <value>
+}
+
+#define macro SET_5() = takes(0) returns(0) {
+    0x5                                       // STACK : [0x5]
+    [VALUE]                                   // STACK : [value_pointer, 0x5]
+    sstore                                    // STACK : []
+}
+
+#define macro SET_5_READ_5 = takes(0) returns(0) {
+    0x5                                       // STACK : [0x5]
+    [VALUE]                                   // STACK : [value_pointer, 0x5]
+    sstore                                    // STACK : []
+                   
+    [VALUE]                                   // STACK : [value_pointer]
+    sload                                     // STACK : []
+}
+
+// MAIN() Macros
+// -------------------------------
+#define macro MAIN() = takes(0) returns(0) {
+    0x00 calldataload 0xe0 shr                // Getting the function selector
+
+    // Compare to function selector to setValue(uint256)
+    dup1 __FUNC_SIG(setValue) eq setValue jumpi
+    // Compare to function selector to getValue()
+    dup1 __FUNC_SIG(getValue) eq getValue jumpi
+
+    setValue:
+        SET_VALUE()
+    getValue:
+        GET_VALUE()
+
+    0x00 0x00 revert
+}
